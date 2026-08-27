@@ -4,107 +4,305 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Energy Metric — Settings</title>
-    <script src="https://sdpi-components.com/releases/v4/sdpi-components.js"></script>
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+        font-size: 12px;
+        color: #d8d8d8;
+        background: #2d2d2d;
+        margin: 0;
+        padding: 8px 12px 16px;
+      }
+      .row { display: flex; align-items: center; margin: 8px 0; gap: 8px; }
+      .row > label.key {
+        flex: 0 0 96px;
+        text-align: right;
+        color: #9a9a9a;
+        user-select: none;
+      }
+      .row > .field { flex: 1 1 auto; min-width: 0; }
+      input[type="text"], input[type="password"], select {
+        width: 100%;
+        box-sizing: border-box;
+        background: #3d3d3d;
+        color: #fff;
+        border: 1px solid #4d4d4d;
+        border-radius: 4px;
+        padding: 5px 6px;
+      }
+      input[type="range"] { width: 100%; }
+      .rangewrap { display: flex; align-items: center; gap: 8px; }
+      .rangewrap output { flex: 0 0 34px; text-align: right; color: #bbb; }
+      fieldset {
+        border: 1px solid #4d4d4d;
+        border-radius: 6px;
+        margin: 8px 0;
+        padding: 6px 8px 8px;
+      }
+      legend { color: #9a9a9a; padding: 0 4px; }
+      .group-title {
+        color: #f0b200;
+        font-weight: 600;
+        margin: 8px 0 3px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .metric {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 2px 0;
+        cursor: pointer;
+      }
+      .metric input { margin: 0; }
+      .hint { color: #8a8a8a; margin-top: 10px; line-height: 1.4; }
+      .toolbar { display: flex; gap: 8px; margin: 4px 0 2px; }
+      .toolbar button {
+        background: #444; color: #ddd; border: 1px solid #555;
+        border-radius: 4px; padding: 3px 8px; cursor: pointer; font-size: 11px;
+      }
+      .toolbar button:hover { background: #505050; }
+    </style>
   </head>
   <body>
-    <sdpi-item label="Service URL">
-      <sdpi-textfield
-        setting="baseUrl"
-        placeholder="http://192.168.1.184:3000"
-        required
-      ></sdpi-textfield>
-    </sdpi-item>
+    <div class="row">
+      <label class="key" for="baseUrl">Service URL</label>
+      <div class="field"><input id="baseUrl" type="text" placeholder="http://192.168.1.184:3000" /></div>
+    </div>
 
-    <sdpi-item label="Auth header">
-      <sdpi-password
-        setting="authHeader"
-        placeholder="optional — e.g. Bearer xyz"
-      ></sdpi-password>
-    </sdpi-item>
+    <div class="row">
+      <label class="key" for="authHeader">Auth header</label>
+      <div class="field"><input id="authHeader" type="password" placeholder="optional — e.g. Bearer xyz" /></div>
+    </div>
 
-    <sdpi-item label="Metrics" type="group">
-      <sdpi-select setting="metrics" multiple showlabels>
-        <optgroup label="Live power">
-          <option value="solar">Solar generation</option>
-          <option value="house">Home consumption</option>
-          <option value="car_power">Car charging power</option>
-          <option value="car_status">Car status</option>
-          <option value="car_amps">Car charge current</option>
-          <option value="grid_power">Grid power (import/export)</option>
-          <option value="grid_voltage">Grid voltage</option>
-        </optgroup>
-        <optgroup label="Battery">
-          <option value="car_soc">Car battery (SoC)</option>
-        </optgroup>
-        <optgroup label="Today's totals">
-          <option value="daily_solar">Solar generated</option>
-          <option value="daily_used">Home used</option>
-          <option value="daily_import">Grid imported</option>
-          <option value="daily_export">Grid exported</option>
-          <option value="daily_car">Car charged</option>
-        </optgroup>
-      </sdpi-select>
-    </sdpi-item>
+    <fieldset>
+      <legend>Metrics (pick one or more)</legend>
+      <div class="toolbar">
+        <button type="button" id="selAll">Select all</button>
+        <button type="button" id="selNone">Clear</button>
+      </div>
+      <div id="metrics"></div>
+    </fieldset>
 
-    <sdpi-item label="Cycle every (s)">
-      <sdpi-range
-        setting="cycleSeconds"
-        min="0"
-        max="30"
-        step="1"
-        default="4"
-        showlabels
-      ></sdpi-range>
-    </sdpi-item>
+    <div class="row">
+      <label class="key" for="cycleSeconds">Cycle every</label>
+      <div class="field rangewrap">
+        <input id="cycleSeconds" type="range" min="0" max="30" step="1" />
+        <output id="cycleSecondsOut"></output>
+      </div>
+    </div>
 
-    <sdpi-item label="Unit">
-      <sdpi-select setting="unit" default="auto">
-        <option value="auto">Auto</option>
-        <option value="w">Watts (W)</option>
-        <option value="kw">Kilowatts (kW)</option>
-        <option value="wh">Watt-hours (Wh)</option>
-        <option value="kwh">Kilowatt-hours (kWh)</option>
-      </sdpi-select>
-    </sdpi-item>
+    <div class="row">
+      <label class="key" for="unit">Unit</label>
+      <div class="field">
+        <select id="unit">
+          <option value="auto">Auto</option>
+          <option value="w">Watts (W)</option>
+          <option value="kw">Kilowatts (kW)</option>
+          <option value="wh">Watt-hours (Wh)</option>
+          <option value="kwh">Kilowatt-hours (kWh)</option>
+        </select>
+      </div>
+    </div>
 
-    <sdpi-item label="Display style">
-      <sdpi-select setting="style" default="detailed">
-        <option value="detailed">Detailed (badge + age)</option>
-        <option value="compact">Compact (no badge)</option>
-        <option value="value_only">Value only</option>
-      </sdpi-select>
-    </sdpi-item>
+    <div class="row">
+      <label class="key" for="style">Display</label>
+      <div class="field">
+        <select id="style">
+          <option value="detailed">Detailed (badge + age)</option>
+          <option value="compact">Compact (no badge)</option>
+          <option value="value_only">Value only</option>
+        </select>
+      </div>
+    </div>
 
-    <sdpi-item label="Refresh (s)">
-      <sdpi-range
-        setting="pollSeconds"
-        min="2"
-        max="60"
-        step="1"
-        default="5"
-        showlabels
-      ></sdpi-range>
-    </sdpi-item>
+    <div class="row">
+      <label class="key" for="pollSeconds">Refresh (s)</label>
+      <div class="field rangewrap">
+        <input id="pollSeconds" type="range" min="2" max="60" step="1" />
+        <output id="pollSecondsOut"></output>
+      </div>
+    </div>
 
-    <sdpi-item label="Stale after (s)">
-      <sdpi-range
-        setting="staleSeconds"
-        min="5"
-        max="120"
-        step="5"
-        default="20"
-        showlabels
-      ></sdpi-range>
-    </sdpi-item>
+    <div class="row">
+      <label class="key" for="staleSeconds">Stale after</label>
+      <div class="field rangewrap">
+        <input id="staleSeconds" type="range" min="5" max="120" step="5" />
+        <output id="staleSecondsOut"></output>
+      </div>
+    </div>
 
-    <sdpi-item>
-      <small style="opacity: 0.7">
-        Select one or more metrics. With several selected, the key auto-rotates
-        through them every "Cycle every" seconds (set 0 to disable) and a short
-        press advances to the next one. Live updates stream over SSE; the refresh
-        interval is the fallback poll used only when the stream is unavailable.
-        One shared connection serves every key on the same URL.
-      </small>
-    </sdpi-item>
+    <p class="hint">
+      Select one or more metrics. With several selected, the key auto-rotates
+      every "Cycle every" seconds (0 disables) and a short press advances to the
+      next. Live data streams over SSE; "Refresh" is the fallback poll used only
+      when the stream is unavailable. One shared connection serves every key on
+      the same URL.
+    </p>
+
+    <script>
+      // Metric catalogue (kept in sync with src/data/metrics.ts).
+      const METRIC_GROUPS = [
+        { title: "Live power", items: [
+          ["solar", "Solar generation"],
+          ["house", "Home consumption"],
+          ["car_power", "Car charging power"],
+          ["car_status", "Car status"],
+          ["car_amps", "Car charge current"],
+          ["grid_power", "Grid power (import/export)"],
+          ["grid_voltage", "Grid voltage"],
+        ]},
+        { title: "Battery", items: [
+          ["car_soc", "Car battery (SoC)"],
+        ]},
+        { title: "Today's totals", items: [
+          ["daily_solar", "Solar generated"],
+          ["daily_used", "Home used"],
+          ["daily_import", "Grid imported"],
+          ["daily_export", "Grid exported"],
+          ["daily_car", "Car charged"],
+        ]},
+      ];
+      const ALL_IDS = METRIC_GROUPS.flatMap((g) => g.items.map((i) => i[0]));
+
+      const DEFAULTS = {
+        baseUrl: "http://192.168.1.184:3000",
+        metrics: ["solar"],
+        cycleSeconds: 4,
+        unit: "auto",
+        style: "detailed",
+        pollSeconds: 5,
+        staleSeconds: 20,
+      };
+
+      let ws = null;
+      let piUUID = null;
+      let settings = { ...DEFAULTS };
+      let ready = false;
+
+      // --- Build the metric checkboxes ------------------------------------
+      const metricsEl = document.getElementById("metrics");
+      for (const group of METRIC_GROUPS) {
+        const t = document.createElement("div");
+        t.className = "group-title";
+        t.textContent = group.title;
+        metricsEl.appendChild(t);
+        for (const [id, label] of group.items) {
+          const row = document.createElement("label");
+          row.className = "metric";
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.value = id;
+          cb.dataset.metric = id;
+          cb.addEventListener("change", onMetricsChange);
+          const span = document.createElement("span");
+          span.textContent = label;
+          row.appendChild(cb);
+          row.appendChild(span);
+          metricsEl.appendChild(row);
+        }
+      }
+
+      function selectedMetrics() {
+        return Array.from(metricsEl.querySelectorAll("input[type=checkbox]"))
+          .filter((c) => c.checked)
+          .map((c) => c.value);
+      }
+      function setSelectedMetrics(ids) {
+        const set = new Set(ids || []);
+        for (const c of metricsEl.querySelectorAll("input[type=checkbox]")) {
+          c.checked = set.has(c.value);
+        }
+      }
+
+      document.getElementById("selAll").addEventListener("click", () => {
+        setSelectedMetrics(ALL_IDS); onMetricsChange();
+      });
+      document.getElementById("selNone").addEventListener("click", () => {
+        setSelectedMetrics([]); onMetricsChange();
+      });
+
+      // --- Field wiring ---------------------------------------------------
+      const el = (id) => document.getElementById(id);
+
+      function bindText(id) {
+        el(id).addEventListener("input", () => { settings[id] = el(id).value; save(); });
+      }
+      function bindSelect(id) {
+        el(id).addEventListener("change", () => { settings[id] = el(id).value; save(); });
+      }
+      function bindRange(id) {
+        const out = el(id + "Out");
+        el(id).addEventListener("input", () => {
+          settings[id] = Number(el(id).value);
+          if (out) out.textContent = el(id).value;
+          save();
+        });
+      }
+      bindText("baseUrl");
+      bindText("authHeader");
+      bindSelect("unit");
+      bindSelect("style");
+      bindRange("cycleSeconds");
+      bindRange("pollSeconds");
+      bindRange("staleSeconds");
+
+      function onMetricsChange() {
+        settings.metrics = selectedMetrics();
+        save();
+      }
+
+      // --- Apply settings to the UI --------------------------------------
+      function applyToUI() {
+        el("baseUrl").value = settings.baseUrl ?? DEFAULTS.baseUrl;
+        el("authHeader").value = settings.authHeader ?? "";
+        el("unit").value = settings.unit ?? DEFAULTS.unit;
+        el("style").value = settings.style ?? DEFAULTS.style;
+
+        const cyc = settings.cycleSeconds ?? DEFAULTS.cycleSeconds;
+        el("cycleSeconds").value = cyc; el("cycleSecondsOut").textContent = String(cyc);
+        const poll = settings.pollSeconds ?? DEFAULTS.pollSeconds;
+        el("pollSeconds").value = poll; el("pollSecondsOut").textContent = String(poll);
+        const stale = settings.staleSeconds ?? DEFAULTS.staleSeconds;
+        el("staleSeconds").value = stale; el("staleSecondsOut").textContent = String(stale);
+
+        const metrics = Array.isArray(settings.metrics) && settings.metrics.length
+          ? settings.metrics
+          : (settings.metric ? [settings.metric] : DEFAULTS.metrics);
+        setSelectedMetrics(metrics);
+      }
+
+      // --- Stream Deck Property Inspector protocol ------------------------
+      function save() {
+        if (!ready || !ws || ws.readyState !== 1) return;
+        ws.send(JSON.stringify({ event: "setSettings", context: piUUID, payload: settings }));
+      }
+
+      // Global entry point the Stream Deck app calls.
+      window.connectElgatoStreamDeckSocket = function (inPort, inUUID, inRegisterEvent, inInfo, inActionInfo) {
+        piUUID = inUUID;
+        try {
+          const info = JSON.parse(inActionInfo);
+          settings = { ...DEFAULTS, ...(info?.payload?.settings || {}) };
+        } catch (_) { settings = { ...DEFAULTS }; }
+
+        ws = new WebSocket("ws://127.0.0.1:" + inPort);
+        ws.onopen = function () {
+          ws.send(JSON.stringify({ event: inRegisterEvent, uuid: inUUID }));
+          applyToUI();
+          ready = true;
+        };
+        ws.onmessage = function (evt) {
+          let msg;
+          try { msg = JSON.parse(evt.data); } catch (_) { return; }
+          if (msg.event === "didReceiveSettings") {
+            settings = { ...DEFAULTS, ...(msg.payload?.settings || {}) };
+            applyToUI();
+          }
+        };
+      };
+    </script>
   </body>
 </html>
