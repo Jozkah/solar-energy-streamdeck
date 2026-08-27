@@ -9,11 +9,12 @@ import streamDeck, {
   type WillAppearEvent,
   type WillDisappearEvent,
   type DidReceiveSettingsEvent,
+  type KeyDownEvent,
 } from "@elgato/streamdeck";
 
-import { DEFAULTS, normalizeBaseUrl, type TileSettings } from "../settings";
+import { DEFAULTS, normalizeBaseUrl, resolveMetrics, type TileSettings } from "../settings";
 import { getClient, releaseClientIfIdle, type EnergyClient } from "../client/energy-client";
-import { getMetric, metricNeedsStats } from "../data/metrics";
+import { getMetric, isMetricId, metricNeedsStats, type MetricId } from "../data/metrics";
 import {
   directionPresentation,
   feedHealth,
@@ -31,6 +32,12 @@ interface Binding {
   authHeader?: string;
   client?: EnergyClient;
   unsub?: () => void;
+  /** Metrics this key cycles through. */
+  metrics: MetricId[];
+  /** Index of the currently displayed metric. */
+  idx: number;
+  /** Seconds elapsed on the current metric (drives auto-rotate). */
+  elapsed: number;
 }
 
 @action({ UUID: "com.solartesla.energy.metric" })
@@ -55,17 +62,33 @@ export class EnergyMetricAction extends SingletonAction<TileSettings> {
     }
   }
 
-  /** Pressing the key forces an immediate re-render (useful for a manual poke). */
-  override onKeyDown(): void {
-    for (const b of this.bindings.values()) this.render(b);
+  /** Pressing the key advances to the next selected metric (and re-renders). */
+  override onKeyDown(ev: KeyDownEvent<TileSettings>): void {
+    const b = this.bindings.get(ev.action.id);
+    if (!b) return;
+    if (b.metrics.length > 1) {
+      b.idx = (b.idx + 1) % b.metrics.length;
+      b.elapsed = 0;
+    }
+    this.render(b);
   }
 
   private ensureUiTimer(): void {
-    // Re-render once a second so the "age" readout advances and stale/offline
-    // states surface even when no new data arrives.
+    // Tick once a second: advance the age readout, surface stale/offline states,
+    // and auto-rotate keys that cycle through several metrics.
     if (this.uiTimer) return;
     this.uiTimer = setInterval(() => {
-      for (const b of this.bindings.values()) this.render(b);
+      for (const b of this.bindings.values()) {
+        const cycle = b.settings.cycleSeconds ?? DEFAULTS.cycleSeconds;
+        if (b.metrics.length > 1 && cycle > 0) {
+          b.elapsed += 1;
+          if (b.elapsed >= cycle) {
+            b.elapsed = 0;
+            b.idx = (b.idx + 1) % b.metrics.length;
+          }
+        }
+        this.render(b);
+      }
     }, 1000);
   }
 
@@ -83,17 +106,26 @@ export class EnergyMetricAction extends SingletonAction<TileSettings> {
       baseUrl: raw.baseUrl ?? DEFAULTS.baseUrl,
       authHeader: raw.authHeader?.trim() || undefined,
       metric: raw.metric ?? DEFAULTS.metric,
+      metrics: raw.metrics,
+      cycleSeconds: raw.cycleSeconds ?? DEFAULTS.cycleSeconds,
       unit: raw.unit ?? DEFAULTS.unit,
       style: raw.style ?? DEFAULTS.style,
       pollSeconds: raw.pollSeconds ?? DEFAULTS.pollSeconds,
       staleSeconds: raw.staleSeconds ?? DEFAULTS.staleSeconds,
     };
     const baseUrl = normalizeBaseUrl(settings.baseUrl);
+    const metrics = resolveMetrics(settings, isMetricId);
 
-    // Rebind cleanly (endpoint or metric may have changed).
+    // Preserve the current rotation position across a settings edit when possible.
+    const prevIdx = this.bindings.get(action.id)?.idx ?? 0;
+
+    // Rebind cleanly (endpoint or metric set may have changed).
     this.teardown(action.id);
 
-    const binding: Binding = { action, settings, baseUrl, authHeader: settings.authHeader };
+    const binding: Binding = {
+      action, settings, baseUrl, authHeader: settings.authHeader,
+      metrics, idx: prevIdx < metrics.length ? prevIdx : 0, elapsed: 0,
+    };
     this.bindings.set(action.id, binding);
 
     if (!baseUrl) {
@@ -104,7 +136,9 @@ export class EnergyMetricAction extends SingletonAction<TileSettings> {
     const client = getClient(baseUrl, settings.authHeader);
     client.setPollSeconds(settings.pollSeconds ?? DEFAULTS.pollSeconds);
     binding.client = client;
-    binding.unsub = client.subscribe(() => this.render(binding), metricNeedsStats(settings.metric));
+    // The key needs the stats feed if ANY selected metric is a daily total.
+    const wantsStats = metrics.some((m) => metricNeedsStats(m));
+    binding.unsub = client.subscribe(() => this.render(binding), wantsStats);
     this.render(binding);
   }
 
@@ -122,7 +156,9 @@ export class EnergyMetricAction extends SingletonAction<TileSettings> {
     if (!baseUrl) {
       return renderMessage("Set URL", "Open settings", "#FFD60A");
     }
-    const def = getMetric(settings.metric);
+    const activeId = b.metrics[b.idx] ?? b.metrics[0] ?? settings.metric;
+    const def = getMetric(activeId);
+    const page = b.metrics.length > 1 ? `${b.idx + 1}/${b.metrics.length}` : "";
     const snap = b.client?.getSnapshot();
 
     const ageMs = snap?.receivedAt != null ? Date.now() - snap.receivedAt : null;
@@ -157,6 +193,7 @@ export class EnergyMetricAction extends SingletonAction<TileSettings> {
       health,
       ageText: showAge ? formatAge(ageMs) : "",
       note: sample.note,
+      page,
     };
     return renderKey(view);
   }

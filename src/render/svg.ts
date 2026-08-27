@@ -71,6 +71,8 @@ export interface KeyView {
   health: FeedHealth;
   ageText: string;
   note?: string;
+  /** Rotation position indicator like "2/5" for multi-metric keys. */
+  page?: string;
 }
 
 const WRAP_OPEN = '<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">';
@@ -113,6 +115,12 @@ export function renderKey(v: KeyView): string {
       `font-size="15" font-weight="600" fill="${COLORS.subtext}">${esc(v.unitText)}</text>`
     : "";
 
+  // Rotation indicator (multi-metric keys), bottom-right.
+  const page = v.page
+    ? `<text x="136" y="118" text-anchor="end" font-family="Helvetica,Arial,sans-serif" ` +
+      `font-size="11" font-weight="600" fill="${COLORS.subtext}">${esc(v.page)}</text>`
+    : "";
+
   const svg =
     WRAP_OPEN + BG +
     iconSvg(v.icon, dimmed ? COLORS.off : v.accent, 10, 10, 26) +
@@ -123,7 +131,7 @@ export function renderKey(v: KeyView): string {
     // big value
     `<text x="72" y="86" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" ` +
     `font-size="${vFont}" font-weight="800" fill="${valueColor}">${esc(v.valueText)}</text>` +
-    unit + dot + note +
+    unit + dot + note + page +
     WRAP_CLOSE;
   return toDataUri(svg);
 }

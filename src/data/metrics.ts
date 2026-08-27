@@ -255,6 +255,12 @@ export const METRICS: Record<MetricId, MetricDef> = {
   },
 };
 
+export const METRIC_IDS = Object.keys(METRICS) as MetricId[];
+
+export function isMetricId(id: string): id is MetricId {
+  return Object.prototype.hasOwnProperty.call(METRICS, id);
+}
+
 export function getMetric(id: string | undefined): MetricDef {
   return METRICS[(id as MetricId)] ?? METRICS.solar;
 }

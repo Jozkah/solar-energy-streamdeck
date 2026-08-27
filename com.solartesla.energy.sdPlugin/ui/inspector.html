@@ -22,8 +22,8 @@
       ></sdpi-password>
     </sdpi-item>
 
-    <sdpi-item label="Metric">
-      <sdpi-select setting="metric" default="solar">
+    <sdpi-item label="Metrics" type="group">
+      <sdpi-select setting="metrics" multiple showlabels>
         <optgroup label="Live power">
           <option value="solar">Solar generation</option>
           <option value="house">Home consumption</option>
@@ -44,6 +44,17 @@
           <option value="daily_car">Car charged</option>
         </optgroup>
       </sdpi-select>
+    </sdpi-item>
+
+    <sdpi-item label="Cycle every (s)">
+      <sdpi-range
+        setting="cycleSeconds"
+        min="0"
+        max="30"
+        step="1"
+        default="4"
+        showlabels
+      ></sdpi-range>
     </sdpi-item>
 
     <sdpi-item label="Unit">
@@ -88,9 +99,11 @@
 
     <sdpi-item>
       <small style="opacity: 0.7">
-        Live updates stream over SSE; the refresh interval is the fallback poll
-        used only when the stream is unavailable. One shared connection serves
-        every key on the same URL.
+        Select one or more metrics. With several selected, the key auto-rotates
+        through them every "Cycle every" seconds (set 0 to disable) and a short
+        press advances to the next one. Live updates stream over SSE; the refresh
+        interval is the fallback poll used only when the stream is unavailable.
+        One shared connection serves every key on the same URL.
       </small>
     </sdpi-item>
   </body>

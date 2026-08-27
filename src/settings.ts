@@ -22,8 +22,12 @@ export interface TileSettings {
    * (e.g. "Bearer xyz" or "Basic ..."). Sent verbatim, never logged.
    */
   authHeader?: string;
-  /** Which metric this key shows. */
+  /** Which metric this key shows (legacy single-select; still honoured). */
   metric?: MetricId;
+  /** Metrics this key cycles through (multi-select). Takes priority over `metric`. */
+  metrics?: MetricId[];
+  /** Auto-rotate interval (seconds) when multiple metrics are selected. 0 = manual (press) only. */
+  cycleSeconds?: number;
   /** Preferred unit. */
   unit?: UnitPref;
   /** Display style. */
@@ -37,11 +41,29 @@ export interface TileSettings {
 export const DEFAULTS = {
   baseUrl: "http://192.168.1.184:3000",
   metric: "solar" as MetricId,
+  cycleSeconds: 4,
   unit: "auto" as UnitPref,
   style: "detailed" as DisplayStyle,
   pollSeconds: 5,
   staleSeconds: 20,
 } as const;
+
+/**
+ * Resolve the ordered list of metrics a key should cycle through, tolerating
+ * the legacy single `metric` field and filtering out unknown ids.
+ */
+export function resolveMetrics(s: TileSettings, isValid: (id: string) => boolean): MetricId[] {
+  const raw = Array.isArray(s.metrics) && s.metrics.length ? s.metrics : (s.metric ? [s.metric] : []);
+  const seen = new Set<string>();
+  const out: MetricId[] = [];
+  for (const id of raw) {
+    if (typeof id === "string" && isValid(id) && !seen.has(id)) {
+      seen.add(id);
+      out.push(id as MetricId);
+    }
+  }
+  return out.length ? out : [DEFAULTS.metric];
+}
 
 /** Normalise a base URL: trim, drop trailing slash. Returns "" if unusable. */
 export function normalizeBaseUrl(raw: string | undefined): string {

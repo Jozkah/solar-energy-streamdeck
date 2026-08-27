@@ -1,8 +1,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { METRICS } from "../src/data/metrics";
+import { METRICS, isMetricId } from "../src/data/metrics";
+import { resolveMetrics } from "../src/settings";
 import type { EnergyState } from "../src/data/state";
+
+test("resolveMetrics: multi-select wins, dedupes, drops unknown ids", () => {
+  assert.deepEqual(resolveMetrics({ metrics: ["solar", "house", "solar", "bogus"] }, isMetricId), ["solar", "house"]);
+});
+
+test("resolveMetrics: falls back to legacy single metric, then default", () => {
+  assert.deepEqual(resolveMetrics({ metric: "grid_power" }, isMetricId), ["grid_power"]);
+  assert.deepEqual(resolveMetrics({}, isMetricId), ["solar"]);
+  assert.deepEqual(resolveMetrics({ metrics: [] }, isMetricId), ["solar"]);
+});
 
 /** A representative healthy snapshot: solar 2.4kW, importing 2.2kW, car charging 3kW. */
 function healthy(): EnergyState {
