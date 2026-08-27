@@ -124,33 +124,43 @@ function houseW(s: EnergyState): MetricSample {
   return { kind: "power", value: Math.round(w), available: true, direction: "load" };
 }
 
-/** Canonical car charging state -> semantics. */
+/**
+ * Car charging state -> semantics. Prefers the Tesla `car` object when it is
+ * present and online; otherwise falls back to Wall Connector telemetry (which
+ * reports charging/connected independently of the Tesla API). Only when neither
+ * source is available is the metric marked unavailable.
+ */
 function carStatus(s: EnergyState): MetricSample {
   const car = s.car;
-  if (!car || car.online === false) {
-    return { kind: "status", value: null, statusText: "Unavailable", available: false, direction: "off" };
-  }
-  const cs = String(car.chargingState ?? "").toLowerCase();
+  const wc = s.wc;
   const w = chargeW(s);
-  if (cs === "charging") {
-    return { kind: "status", value: w, statusText: "Charging", available: true, direction: "charge" };
-  }
-  if (cs === "disconnected") {
-    return { kind: "status", value: 0, statusText: "Unplugged", available: true, direction: "idle" };
-  }
-  if (cs === "complete") {
-    return { kind: "status", value: 0, statusText: "Complete", available: true, direction: "idle" };
-  }
-  if (cs === "nopower") {
-    return { kind: "status", value: 0, statusText: "No power", available: true, direction: "idle" };
-  }
-  if (cs === "stopped" || cs === "starting" || car.pluggedIn) {
+
+  if (car && car.online !== false) {
+    const cs = String(car.chargingState ?? "").toLowerCase();
+    if (cs === "charging") return { kind: "status", value: w, statusText: "Charging", available: true, direction: "charge" };
+    if (cs === "disconnected") return { kind: "status", value: 0, statusText: "Unplugged", available: true, direction: "idle" };
+    if (cs === "complete") return { kind: "status", value: 0, statusText: "Complete", available: true, direction: "idle" };
+    if (cs === "nopower") return { kind: "status", value: 0, statusText: "No power", available: true, direction: "idle" };
+    if (cs === "stopped" || cs === "starting" || car.pluggedIn) return { kind: "status", value: 0, statusText: "Idle", available: true, direction: "idle" };
     return { kind: "status", value: 0, statusText: "Idle", available: true, direction: "idle" };
   }
-  if (car.stale) {
+
+  // Wall Connector fallback (car API not reporting).
+  if (wc && !wc.error) {
+    if (wc.charging) return { kind: "status", value: w, statusText: "Charging", available: true, direction: "charge" };
+    if (wc.connected) return { kind: "status", value: 0, statusText: "Idle", available: true, direction: "idle" };
+    return { kind: "status", value: 0, statusText: "Unplugged", available: true, direction: "idle" };
+  }
+
+  if (car && car.stale) {
     return { kind: "status", value: null, statusText: "Stale", available: false, direction: "off", note: "Stale car data" };
   }
-  return { kind: "status", value: 0, statusText: "Idle", available: true, direction: "idle" };
+  return { kind: "status", value: null, statusText: "Unavailable", available: false, direction: "off" };
+}
+
+/** True when the charging power is known from any source (Tesla, WC, or computed). */
+function hasChargePower(s: EnergyState): boolean {
+  return num(s.computed?.chargeW) != null || (!!s.wc && !s.wc.error && num(s.wc.power) != null) || num(s.car?.chargerPower) != null;
 }
 
 function statsHome(s: EnergyState): StatsPayload["home"] | null {
@@ -181,9 +191,9 @@ export const METRICS: Record<MetricId, MetricDef> = {
     id: "car_power", label: "Car charging power", short: "Car", group: "car",
     kind: "power", icon: "car", source: "live",
     extract: (s) => {
-      const st = carStatus(s);
-      if (!st.available) return { kind: "power", value: null, available: false, direction: "off", note: st.note };
-      return { kind: "power", value: Math.round(chargeW(s)), available: true, direction: st.direction };
+      if (!hasChargePower(s)) return { kind: "power", value: null, available: false, direction: "off", note: "Car unavailable" };
+      const w = Math.round(chargeW(s));
+      return { kind: "power", value: w, available: true, direction: w > 0 ? "charge" : "idle" };
     },
   },
   car_status: {

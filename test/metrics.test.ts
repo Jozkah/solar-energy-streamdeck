@@ -1,12 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { METRICS, isMetricId } from "../src/data/metrics";
+import { METRICS, isMetricId, type MetricId } from "../src/data/metrics";
 import { resolveMetrics } from "../src/settings";
 import type { EnergyState } from "../src/data/state";
 
 test("resolveMetrics: multi-select wins, dedupes, drops unknown ids", () => {
-  assert.deepEqual(resolveMetrics({ metrics: ["solar", "house", "solar", "bogus"] }, isMetricId), ["solar", "house"]);
+  assert.deepEqual(resolveMetrics({ metrics: ["solar", "house", "solar", "bogus"] as unknown as MetricId[] }, isMetricId), ["solar", "house"]);
 });
 
 test("resolveMetrics: falls back to legacy single metric, then default", () => {
@@ -84,13 +84,37 @@ test("car status maps charging state and power", () => {
   assert.equal(s.available, true);
 });
 
-test("car metrics are unavailable when car is null", () => {
+test("car status/power fall back to the Wall Connector when car is null", () => {
   const st = healthy();
   st.car = null;
+  st.wc = { connected: true, charging: true, currentA: 13.7, voltage: 242, power: 3317 };
+  st.computed = { ...st.computed, chargeW: 3317 };
+  const status = METRICS.car_status.extract(st);
+  assert.equal(status.available, true);
+  assert.equal(status.statusText, "Charging");
+  assert.equal(status.direction, "charge");
+  const power = METRICS.car_power.extract(st);
+  assert.equal(power.available, true);
+  assert.equal(power.value, 3317);
+});
+
+test("car status is Idle via WC when connected but not charging", () => {
+  const st = healthy();
+  st.car = null;
+  st.wc = { connected: true, charging: false, power: 0 };
+  st.computed = { ...st.computed, chargeW: 0 };
+  assert.equal(METRICS.car_status.extract(st).statusText, "Idle");
+});
+
+test("car metrics are unavailable only when car, WC and computed are all absent", () => {
+  const st = healthy();
+  st.car = null;
+  st.wc = null;
+  st.computed = null;
   assert.equal(METRICS.car_status.extract(st).available, false);
   assert.equal(METRICS.car_status.extract(st).statusText, "Unavailable");
-  assert.equal(METRICS.car_soc.extract(st).available, false);
   assert.equal(METRICS.car_power.extract(st).available, false);
+  assert.equal(METRICS.car_soc.extract(st).available, false); // SoC needs the Tesla API
 });
 
 test("car SoC and voltage read straight through", () => {
