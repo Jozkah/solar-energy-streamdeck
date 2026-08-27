@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "Name": "Solar Energy Monitor",
+  "Version": "1.0.0.0",
+  "Author": "Jozkah",
+  "Actions": [
+    {
+      "Name": "Energy Metric",
+      "UUID": "com.solartesla.energy.metric",
+      "Icon": "imgs/actions/metric/icon",
+      "Tooltip": "Show a live energy metric (solar, house, car, grid, battery, daily totals).",
+      "PropertyInspectorPath": "ui/inspector.html",
+      "Controllers": ["Keypad"],
+      "States": [
+        {
+          "Image": "imgs/actions/metric/key",
+          "TitleAlignment": "middle",
+          "ShowTitle": false
+        }
+      ]
+    }
+  ],
+  "Category": "Solar Energy Monitor",
+  "CategoryIcon": "imgs/category",
+  "CodePath": "bin/plugin.js",
+  "Description": "Real-time home energy monitoring on your Stream Deck: solar generation, home consumption, car charging, grid import/export, voltage, battery SoC and daily totals from your local energy-monitoring service.",
+  "Icon": "imgs/plugin/marketplace",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "6.5"
+  },
+  "OS": [
+    { "Platform": "windows", "MinimumVersion": "10" },
+    { "Platform": "mac", "MinimumVersion": "12" }
+  ],
+  "Nodejs": {
+    "Version": "20",
+    "Debug": "enabled"
+  },
+  "UUID": "com.solartesla.energy"
+}

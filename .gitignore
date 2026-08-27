@@ -1,0 +1,7 @@
+node_modules/
+com.solartesla.energy.sdPlugin/bin/
+com.solartesla.energy.sdPlugin/logs/
+*.streamDeckPlugin
+.env
+*.log
+.DS_Store

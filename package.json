@@ -1,0 +1,37 @@
+{
+  "name": "solar-energy-streamdeck",
+  "version": "1.0.0",
+  "description": "Stream Deck plugin for real-time home solar / consumption / car-charging / grid energy monitoring, driven by the local energy-monitoring service.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "rollup -c",
+    "icons": "node scripts/build-icons.mjs",
+    "validate": "streamdeck validate com.solartesla.energy.sdPlugin",
+    "watch": "rollup -c --watch --watch.onEnd=\"streamdeck restart com.solartesla.energy\"",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
+    "test": "node --import tsx --test test/*.test.ts",
+    "package": "streamdeck pack com.solartesla.energy.sdPlugin"
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "^2.1.2"
+  },
+  "devDependencies": {
+    "@elgato/cli": "^1.2.0",
+    "@eslint/js": "^9.13.0",
+    "@resvg/resvg-js": "^2.6.2",
+    "@rollup/plugin-commonjs": "^28.0.0",
+    "@rollup/plugin-node-resolve": "^15.3.0",
+    "@rollup/plugin-typescript": "^12.1.0",
+    "@types/node": "^20.16.0",
+    "eslint": "^9.13.0",
+    "rollup": "^4.24.0",
+    "tslib": "^2.7.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.10.0"
+  }
+}

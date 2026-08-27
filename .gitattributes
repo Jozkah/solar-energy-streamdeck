@@ -1,0 +1,4 @@
+# Normalise line endings; keep binary assets untouched.
+* text=auto eol=lf
+*.png binary
+*.svg text eol=lf

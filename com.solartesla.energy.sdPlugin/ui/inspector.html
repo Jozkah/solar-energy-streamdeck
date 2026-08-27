@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Energy Metric — Settings</title>
+    <script src="https://sdpi-components.com/releases/v4/sdpi-components.js"></script>
+  </head>
+  <body>
+    <sdpi-item label="Service URL">
+      <sdpi-textfield
+        setting="baseUrl"
+        placeholder="http://192.168.1.184:3000"
+        required
+      ></sdpi-textfield>
+    </sdpi-item>
+
+    <sdpi-item label="Auth header">
+      <sdpi-password
+        setting="authHeader"
+        placeholder="optional — e.g. Bearer xyz"
+      ></sdpi-password>
+    </sdpi-item>
+
+    <sdpi-item label="Metric">
+      <sdpi-select setting="metric" default="solar">
+        <optgroup label="Live power">
+          <option value="solar">Solar generation</option>
+          <option value="house">Home consumption</option>
+          <option value="car_power">Car charging power</option>
+          <option value="car_status">Car status</option>
+          <option value="car_amps">Car charge current</option>
+          <option value="grid_power">Grid power (import/export)</option>
+          <option value="grid_voltage">Grid voltage</option>
+        </optgroup>
+        <optgroup label="Battery">
+          <option value="car_soc">Car battery (SoC)</option>
+        </optgroup>
+        <optgroup label="Today's totals">
+          <option value="daily_solar">Solar generated</option>
+          <option value="daily_used">Home used</option>
+          <option value="daily_import">Grid imported</option>
+          <option value="daily_export">Grid exported</option>
+          <option value="daily_car">Car charged</option>
+        </optgroup>
+      </sdpi-select>
+    </sdpi-item>
+
+    <sdpi-item label="Unit">
+      <sdpi-select setting="unit" default="auto">
+        <option value="auto">Auto</option>
+        <option value="w">Watts (W)</option>
+        <option value="kw">Kilowatts (kW)</option>
+        <option value="wh">Watt-hours (Wh)</option>
+        <option value="kwh">Kilowatt-hours (kWh)</option>
+      </sdpi-select>
+    </sdpi-item>
+
+    <sdpi-item label="Display style">
+      <sdpi-select setting="style" default="detailed">
+        <option value="detailed">Detailed (badge + age)</option>
+        <option value="compact">Compact (no badge)</option>
+        <option value="value_only">Value only</option>
+      </sdpi-select>
+    </sdpi-item>
+
+    <sdpi-item label="Refresh (s)">
+      <sdpi-range
+        setting="pollSeconds"
+        min="2"
+        max="60"
+        step="1"
+        default="5"
+        showlabels
+      ></sdpi-range>
+    </sdpi-item>
+
+    <sdpi-item label="Stale after (s)">
+      <sdpi-range
+        setting="staleSeconds"
+        min="5"
+        max="120"
+        step="5"
+        default="20"
+        showlabels
+      ></sdpi-range>
+    </sdpi-item>
+
+    <sdpi-item>
+      <small style="opacity: 0.7">
+        Live updates stream over SSE; the refresh interval is the fallback poll
+        used only when the stream is unavailable. One shared connection serves
+        every key on the same URL.
+      </small>
+    </sdpi-item>
+  </body>
+</html>
